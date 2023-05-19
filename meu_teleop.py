@@ -8,48 +8,49 @@ class TeleopNode(Node):
     def __init__(self):
         super().__init__('teleop_node')
 
-        # Parameter setup
+        # configurando os parametros
         self.linear_speed = self.declare_parameter('linear_speed', 0.5).value
         self.angular_speed = self.declare_parameter('angular_speed', 0.5).value
-        self.acceleration_factor = self.declare_parameter('acceleration_factor', 2.0).value
+        self.speed_increment = self.declare_parameter('speed_increment', 0.5).value
 
-        # State to track if acceleration is active
-        self.acceleration_active = False
-
-        # Subscriber setup
+        # configurando o subscriber
         self.subscription = self.create_subscription(
             String,
             'keyboard_topic',
             self.listener_callback,
             10
         )
-        self.subscription  # prevent unused variable warning
+        self.subscription
 
-        # Publisher setup
+        # configurando o publisher
         self.publisher = self.create_publisher(Twist, 'cmd_vel', 10)
 
     def listener_callback(self, msg):
-        self.get_logger().info('I heard: "%s"' % msg.data)
+        self.get_logger().info(f'Recebido: {msg.data}')
 
         twist = Twist()
 
-        speed_factor = self.acceleration_factor if self.acceleration_active else 1.0
+        #incremento de velocidade ao apertar f
+        if msg.data.lower() == 'f':
+            self.linear_speed += self.speed_increment
+            self.angular_speed += self.speed_increment
+            self.get_logger().info(f'Velocidade aumentada. Velocidade linear: {self.linear_speed}, Velocidade Angular: {self.angular_speed}')
 
         if msg.data.lower() == 'w':
-            twist.linear.x = self.linear_speed * speed_factor
+            twist.linear.x = self.linear_speed
         elif msg.data.lower() == 's':
-            twist.linear.x = -self.linear_speed * speed_factor
+            twist.linear.x = -self.linear_speed
         elif msg.data.lower() == 'a':
-            twist.linear.y = self.linear_speed * speed_factor
+            twist.linear.y = self.linear_speed
         elif msg.data.lower() == 'd':
-            twist.linear.y = -self.linear_speed * speed_factor
+            twist.linear.y = -self.linear_speed
         elif msg.data.lower() == 'q':
-            twist.angular.z = self.angular_speed * speed_factor
+            twist.angular.z = self.angular_speed
         elif msg.data.lower() == 'e':
-            twist.angular.z = -self.angular_speed * speed_factor
+            twist.angular.z = -self.angular_speed
         elif msg.data.lower() == ' ':
             twist = Twist()
-            self.get_logger().info('Emergency stop activated.')
+            self.get_logger().info('Parada de emergência ativada.')
 
         if msg.data.lower() in ['w', 's', 'a', 'd', 'q', 'e', ' ']:
             self.publisher.publish(twist)
